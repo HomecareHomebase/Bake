@@ -1,0 +1,23 @@
+name: windows-test
+shortName: wintest
+version: 1.0.0
+ingredients:
+  - "@azbake/ingredient-azure-vm@0~"
+resourceGroup: true
+rgOverride: default
+parallelRegions: false
+recipe:
+  windows-test:
+    properties:
+      type: "@azbake/ingredient-azure-vm"
+      parameters:
+        vmName: "dscVM"
+        adminUsername: "kevinreilly"
+        adminPassword: "Hchb2019!"
+        nicName: "dscvm508"
+        subnetName: "default"
+        storageAccountName: "kevinvmstorage"
+        osType: "windsc"
+        registrationURL: "https://eus-agentservice-prod-1.azure-automation.net/accounts/d5d56429-c355-4715-9889-dd2eda93b677"
+        registrationKey: "secret"
+        nodeConfigurationName: "TestConfig.NotWebServer"

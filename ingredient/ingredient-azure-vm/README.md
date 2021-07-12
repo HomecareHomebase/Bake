@@ -30,6 +30,33 @@ recipe:
         osType: "windows"
 ```
 
+## Windows Usage + Powershell DSC Usage
+
+```yaml
+name: windows-test
+shortName: wintest
+version: 1.0.0
+ingredients:
+  - "@azbake/ingredient-azure-vm@0~"
+resourceGroup: true
+rgOverride: test
+parallelRegions: false
+recipe:
+  windows-test:
+    properties:
+      type: "@azbake/ingredient-azure-vm"
+      parameters:
+        vmName: "testvm"
+        adminUsername: "user1"
+        adminPassword: "password1!"
+        subnetName: "default"
+        storageAccountName: "sawindowsvm"
+        osType: "windsc"
+        registrationURL: "url"
+        registrationKey: "secret"
+        nodeConfigurationName: "TestConfig.NotWebServer"
+```
+
 ## Linux Usage
 
 ```yaml
@@ -72,6 +99,11 @@ Parameters
 | location | no | Location for all resources |
 | windowsOSVersion | no | Windows OS type to deploy |
 | vmSize | no | VM Sizing |
+| registrationURL | yes* | Registration URL of the Automation Account |
+| registrationKey | yes* | The key to use for the registrationURL |
+| nodeConfigurationName | yes* | The node configuration that this VM should be assigned to |
+
+*_required if using the DSC option_
 
 ##Linux Properties
 Set: 

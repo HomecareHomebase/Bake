@@ -1,0 +1,205 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "adminUsername": {
+            "type": "string",
+            "metadata": {
+                "description": "User name for the Virtual Machine."
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Password for the Virtual Machine"
+            }
+        },
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Location for all resources."
+            }
+        },
+        "storageAccountName": {
+            "type": "string",
+            "defaultValue": "sawindowsvm",
+            "metadata": {
+                "description": "Storage Account for the VM"
+            }
+        },
+        "windowsOSVersion": {
+            "type": "string",
+            "defaultValue": "2016-Datacenter",
+            "allowedValues": [
+                "2008-R2-SP1",
+                "2012-Datacenter",
+                "2012-R2-Datacenter",
+                "2016-Nano-Server",
+                "2016-Datacenter-with-Containers",
+                "2016-Datacenter",
+                "2019-Datacenter"
+            ],
+            "metadata": {
+                "description": "The Windows version for the VM. This will pick a fully patched image of this given Windows version."
+            }
+        },
+        "nicName": {
+            "type": "string",
+            "defaultValue": "MyVMNic",
+            "metadata": {
+                "description": "Network Interface Name"
+            }
+        },
+        "subnetName": {
+            "type": "string",
+            "defaultValue": "Subnet",
+            "metadata": {
+                "description": "Subnet name"
+            }
+        },
+        "vmName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name for the VM"
+            }
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_A1",
+            "metadata": {
+                "description": "VM Sizing"
+            }
+        },
+        "virtualNetworkName": {
+            "type": "string",
+            "defaultValue": "MyVNet",
+            "metadata": {
+                "description": "Virtual Network Name"
+            }
+        },
+        "diskSize": {
+            "type": "int",
+            "defaultValue": 1023,
+            "metadata": {
+                "description": "System Disk Size in Megabytes"
+            }
+        },
+        "registrationURL": {
+            "type": "string",
+            "metadata": {
+                "description": "Azure Automation DSC URL"
+            }
+        },
+        "registrationKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Access Key for onboarding VMs into Azure Automation DSC."
+            }
+        },
+        "typeHandlerVersion": {
+            "type": "string",
+            "defaultValue": "2.77",
+            "metadata": {
+                "description": "The version of the script handler."
+            }
+        },
+        "nodeConfigurationName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the node configuration in the Automation account to assign to the node."
+            }
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2018-10-01",
+            "name": "[parameters('vmName')]",
+            "location": "[parameters('location')]",            
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "Standard_A2"
+                },
+                "osProfile": {
+                    "computerName": "[parameters('vmName')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": "[parameters('windowsOSVersion')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "createOption": "FromImage"
+                    },
+                    "dataDisks": [
+                        {
+                            "diskSizeGB": 1023,
+                            "lun": 0,
+                            "createOption": "Empty"
+                        }
+                    ]
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',parameters('nicName'))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true,
+                        "storageUri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', parameters('storageAccountName')), '2016-01-01').primaryEndpoints.blob)]"
+                    }
+                }
+            }
+        },
+        {
+           "type": "Microsoft.Compute/virtualMachines/extensions",
+           "name": "[concat(parameters('vmName'), '/Microsoft.Powershell.DSC')]",
+           "apiVersion": "2018-10-01",
+           "location": "[parameters('location')]",
+           "dependsOn": [
+             "[concat('Microsoft.Compute/virtualMachines/', parameters('vmName'))]"
+           ],
+           "properties": {
+             "publisher": "Microsoft.Powershell",
+             "type": "DSC",
+             "typeHandlerVersion": "[parameters('typeHandlerVersion')]",
+             "autoUpgradeMinorVersion": true,
+             "protectedSettings": {
+               "Items": {
+                 "registrationKeyPrivate": "[parameters('registrationKey')]"
+               }
+             },
+             "settings": {
+               "Properties": [
+                 {
+                   "Name": "RegistrationKey",
+                   "Value": {
+                     "UserName": "PLACEHOLDER_DONOTUSE",
+                     "Password": "PrivateSettingsRef:registrationKeyPrivate"
+                   },
+                   "TypeName": "System.Management.Automation.PSCredential"
+                 },
+                 {
+                   "Name": "RegistrationUrl",
+                   "Value": "[parameters('registrationURL')]",
+                   "TypeName": "System.String"
+                 },
+                 {
+                   "Name": "NodeConfigurationName",
+                   "Value": "[parameters('nodeConfigurationName')]",
+                   "TypeName": "System.String"
+                 }
+               ]
+             }
+           }
+        }
+    ]
+}
